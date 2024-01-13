@@ -49,7 +49,30 @@ fn addFive(x: u8) u16 {
 
 test "func" {
     const y: u16 = addFive(1);
-    print("\n{}\n", .{y});
     try expect(y == 2);
     assert(@TypeOf(y) == u16);
+}
+
+test "switch" {
+    var x: f32 = undefined;
+    const y: u8 = 0;
+    switch (y) {
+        0...2 => {
+            x = 1.2223445 / 0.9983839;
+        },
+        3...4 => {
+            x = 3;
+        },
+        else => {
+            x = 10;
+        },
+    }
+    print("\n{}\n", .{x});
+    try expect(x == 1.22432315);
+}
+
+test "unreachable" {
+    const x: i32 = 2;
+    const y: u32 = if (x == 2) 5 else unreachable;
+    _ = y;
 }
