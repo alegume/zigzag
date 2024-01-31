@@ -60,11 +60,7 @@ pub fn main() !void {
     }
 }
 
-fn page_allocator() !u64 {
-    var start = try timer.start();
-
-    const allocator = std.heap.page_allocator;
-    // const size = std.math.pow(usize, 2, 20);
+fn tester(allocator: std.mem.Allocator) !void {
     const memory = try allocator.alloc(hb_files.Element, SIZE);
     defer allocator.free(memory);
 
@@ -86,11 +82,15 @@ fn page_allocator() !u64 {
     }
     memory[0] = hb_files.Element{ .v = null, .i = 435, .j = 798 };
     memory[9999] = hb_files.Element{ .v = null, .i = 32435, .j = 87 };
+}
+
+fn page_allocator() !u64 {
+    var start = try timer.start();
+    const allocator = std.heap.page_allocator;
+    try tester(allocator);
     const time = start.read();
 
     print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
-    // print("size: {}\n", .{size});
-    // print("Mem used: {any} Mbytes\n", .{@sizeOf(usize) * size / (1024 * 1024)});
 
     return time;
 }
@@ -106,19 +106,8 @@ fn gpa_alloc() !u64 {
         if (deinit_status == .leak) expect(false) catch @panic("TEST FAIL");
     }
 
-    const memory = try allocator.alloc(usize, SIZE);
-    defer allocator.free(memory);
+    try tester(allocator);
 
-    try expect(memory.len == SIZE);
-    try expect(@TypeOf(memory) == []usize);
-
-    print("\n\t ** GPA allocator **\n", .{});
-    for (memory, 0..) |_, i|
-        memory[i] = i;
-    for (memory, 0..) |_, i|
-        memory[i] *= 3;
-    memory[0] = 999;
-    memory[9999] = 21;
     const time = start.read();
 
     print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
@@ -130,21 +119,7 @@ fn c_alloc() !u64 {
     var start = try timer.start();
 
     const allocator = std.heap.c_allocator;
-    // const size = std.math.pow(usize, 2, 20);
-    const memory = try allocator.alloc(usize, SIZE);
-    defer allocator.free(memory);
-
-    try expect(memory.len == SIZE);
-    try expect(@TypeOf(memory) == []usize);
-    try expect(@sizeOf(usize) == @sizeOf(u64));
-
-    print("\n\t ** C allocator **\n", .{});
-    for (memory, 0..) |_, i|
-        memory[i] = i;
-    for (memory, 0..) |_, i|
-        memory[i] *= 3;
-    memory[0] = 999;
-    memory[9999] = 21;
+    try tester(allocator);
     const time = start.read();
 
     print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
