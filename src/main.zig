@@ -4,9 +4,10 @@ const assert = std.debug.assert;
 const expect = std.testing.expect;
 const timer = std.time.Timer;
 
-const hb_files = @import("hb_files.zig");
+const hb = @import("hb_files.zig");
 
-const SIZE = 6_000;
+// const SIZE = 6_000;
+const SIZE = 1_000_000;
 const REPETITIONS = 100;
 
 pub fn main() !void {
@@ -35,8 +36,8 @@ fn test_allocators() !void {
     var total_p: f64 = undefined;
 
     for (0..REPETITIONS) |_| {
-        const g = try gpa_alloc();
         const p = try page_allocator();
+        const g = try gpa_alloc();
         const c_time = try c_alloc();
         if (p < g) {
             if (c_time < p) {
@@ -66,47 +67,81 @@ fn test_allocators() !void {
 }
 
 fn tester(allocator: std.mem.Allocator) !void {
-    try testElement(allocator);
+    // try testElement(allocator);
+    try testCSR_Matrix(allocator);
+}
+
+fn testCSR_Matrix(allocator: std.mem.Allocator) !void {
+    var matrix: hb.CSR_Matrix = undefined;
+    matrix.i = try allocator.alloc(usize, SIZE);
+    matrix.j = try allocator.alloc(usize, SIZE);
+    matrix.v = try allocator.alloc(?f64, SIZE);
+    defer {
+        allocator.free(matrix.i);
+        allocator.free(matrix.j);
+        allocator.free(matrix.v);
+    }
+    // for (matrix.i, 0..) |_, index| matrix.i[index] = index;
+    // print("{any}\n", .{matrix});
+
+    try expect(matrix.j.len == SIZE);
+    try expect(@TypeOf(matrix.i) == []usize);
+
+    for (matrix.i, 0..) |_, i| {
+        matrix.v[i] = @as(f64, @floatFromInt(i));
+        matrix.i[i] = i;
+        matrix.j[i] = i;
+    }
+    for (matrix.i, 0..) |_, i| {
+        matrix.v[i] = (matrix.v[i] orelse 321) * @as(f64, @floatFromInt(i));
+        matrix.i[i] *= 6;
+        matrix.j[i] *= 7;
+    }
+    matrix.v[0] = null;
+    matrix.i[0] = 435;
+    matrix.j[0] = 798;
+    matrix.v[matrix.i.len - 1] = null;
+    matrix.i[matrix.i.len - 1] = 32435;
+    matrix.j[matrix.i.len - 1] = 87;
 }
 
 fn testElement(allocator: std.mem.Allocator) !void {
-    const matrix = try allocator.alloc(hb_files.Element, SIZE);
+    const matrix: []hb.Element = try allocator.alloc(hb.Element, SIZE);
     defer allocator.free(matrix);
 
     try expect(matrix.len == SIZE);
-    try expect(@TypeOf(matrix) == []hb_files.Element);
+    try expect(@TypeOf(matrix) == []hb.Element);
     try expect(@sizeOf(usize) == @sizeOf(u64));
 
-    print("\n\t ** Page allocator **\n", .{});
     for (matrix, 0..) |_, i|
-        matrix[i] = hb_files.Element{
+        matrix[i] = hb.Element{
             .v = @as(f64, @floatFromInt(i)),
             .i = i,
             .j = i,
         };
     for (matrix, 0..) |_, i| {
         matrix[i].v = (matrix[i].v orelse 321) * @as(f64, @floatFromInt(i));
-        matrix[i].j *= 6;
+        matrix[i].i *= 6;
         matrix[i].j *= 7;
     }
-    matrix[0] = hb_files.Element{ .v = null, .i = 435, .j = 798 };
-    matrix[999] = hb_files.Element{ .v = null, .i = 32435, .j = 87 };
+    matrix[0] = hb.Element{ .v = null, .i = 435, .j = 798 };
+    matrix[matrix.len - 1] = hb.Element{ .v = null, .i = 32435, .j = 87 };
 }
 
 fn page_allocator() !u64 {
     var start = try timer.start();
     const allocator = std.heap.page_allocator;
+
+    // print("\n\t ** Page allocator **\n", .{});
     try tester(allocator);
     const time = start.read();
-
-    print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
+    // print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
 
     return time;
 }
 
 fn gpa_alloc() !u64 {
     var start = try timer.start();
-
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer {
@@ -115,23 +150,22 @@ fn gpa_alloc() !u64 {
         if (deinit_status == .leak) expect(false) catch @panic("TEST FAIL");
     }
 
+    // print("\n\t ** GPA allocator **\n", .{});
     try tester(allocator);
-
     const time = start.read();
-
-    print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
+    // print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
 
     return time;
 }
 
 fn c_alloc() !u64 {
     var start = try timer.start();
-
     const allocator = std.heap.c_allocator;
+
+    // print("\n\t ** C allocator **\n", .{});
     try tester(allocator);
     const time = start.read();
-
-    print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
+    // print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
 
     return time;
 }
