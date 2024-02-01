@@ -6,7 +6,8 @@ const timer = std.time.Timer;
 
 const hb_files = @import("hb_files.zig");
 
-const SIZE = 900_000;
+const SIZE = 6_000;
+const REPETITIONS = 100;
 
 pub fn main() !void {
     // var start = try timer.start();
@@ -20,6 +21,10 @@ pub fn main() !void {
     // // print("{}\n", .{end});
     // print("\nTime: {}\n", .{std.fmt.fmtDuration(time)});
 
+    try test_allocators();
+}
+
+fn test_allocators() !void {
     var gpa: u8 = 0;
     var page: u8 = 0;
     var c: u8 = 0;
@@ -29,7 +34,7 @@ pub fn main() !void {
     var total_g: f64 = undefined;
     var total_p: f64 = undefined;
 
-    for (0..100) |_| {
+    for (0..REPETITIONS) |_| {
         const g = try gpa_alloc();
         const p = try page_allocator();
         const c_time = try c_alloc();
@@ -61,27 +66,31 @@ pub fn main() !void {
 }
 
 fn tester(allocator: std.mem.Allocator) !void {
-    const memory = try allocator.alloc(hb_files.Element, SIZE);
-    defer allocator.free(memory);
+    try testElement(allocator);
+}
 
-    try expect(memory.len == SIZE);
-    try expect(@TypeOf(memory) == []hb_files.Element);
+fn testElement(allocator: std.mem.Allocator) !void {
+    const matrix = try allocator.alloc(hb_files.Element, SIZE);
+    defer allocator.free(matrix);
+
+    try expect(matrix.len == SIZE);
+    try expect(@TypeOf(matrix) == []hb_files.Element);
     try expect(@sizeOf(usize) == @sizeOf(u64));
 
     print("\n\t ** Page allocator **\n", .{});
-    for (memory, 0..) |_, i|
-        memory[i] = hb_files.Element{
+    for (matrix, 0..) |_, i|
+        matrix[i] = hb_files.Element{
             .v = @as(f64, @floatFromInt(i)),
             .i = i,
             .j = i,
         };
-    for (memory, 0..) |_, i| {
-        memory[i].v = (memory[i].v orelse 321) * @as(f64, @floatFromInt(i));
-        memory[i].j *= 6;
-        memory[i].j *= 7;
+    for (matrix, 0..) |_, i| {
+        matrix[i].v = (matrix[i].v orelse 321) * @as(f64, @floatFromInt(i));
+        matrix[i].j *= 6;
+        matrix[i].j *= 7;
     }
-    memory[0] = hb_files.Element{ .v = null, .i = 435, .j = 798 };
-    memory[9999] = hb_files.Element{ .v = null, .i = 32435, .j = 87 };
+    matrix[0] = hb_files.Element{ .v = null, .i = 435, .j = 798 };
+    matrix[999] = hb_files.Element{ .v = null, .i = 32435, .j = 87 };
 }
 
 fn page_allocator() !u64 {
