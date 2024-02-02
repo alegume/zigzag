@@ -76,9 +76,9 @@ fn Impls(comptime Object: type) type {
     };
 }
 
-const small_rounds = 2_500_00;
-const medium_rounds = 1_000_00;
-const big_rounds = 25_00;
+const small_rounds = 2_500_0;
+const medium_rounds = 1_000_0;
+const big_rounds = 25_0;
 
 test "gpa(small)" {
     var impl = Impls(SmallObject).Raw.init(std.testing.allocator);

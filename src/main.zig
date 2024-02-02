@@ -160,12 +160,24 @@ fn gpa_alloc() !u64 {
 
 fn c_alloc() !u64 {
     var start = try timer.start();
-    const allocator = std.heap.c_allocator;
+    const allocator = std.heap.page_allocator;
 
     // print("\n\t ** C allocator **\n", .{});
     try tester(allocator);
     const time = start.read();
     // print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
+
+    return time;
+}
+
+fn arena() !u64 {
+    var start = try timer.start();
+    const allocator = std.heap.page_allocator;
+
+    print("\n\t ** Arena allocator **\n", .{});
+    try tester(allocator);
+    const time = start.read();
+    print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
 
     return time;
 }
