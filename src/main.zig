@@ -171,16 +171,18 @@ fn c_alloc() !u64 {
 }
 
 test "buffer" {
-    var buffer: [120]u8 = undefined;
+    const S = 30_000_000;
+    var buffer: [S]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
     const allocator = fba.allocator();
 
-    const memory = try allocator.alloc(u8, 120);
+    const memory = try allocator.alloc(u8, S);
     defer allocator.free(memory);
 
-    try expect(memory.len == 120);
+    try expect(memory.len == S);
     try expect(@TypeOf(memory) == []u8);
 
-    for (buffer, 0..) |_, i| memory[i] = @as(u8, @intCast(i));
-    print("\n {any} -max \n", .{memory});
+    for (buffer, 0..) |_, i| memory[i] = @intCast(@mod(i, 255));
+    print("\n {any} \n", .{memory[191]});
+    print("\nsize:{}\n", .{8 * S});
 }
