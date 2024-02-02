@@ -170,14 +170,17 @@ fn c_alloc() !u64 {
     return time;
 }
 
-fn arena() !u64 {
-    var start = try timer.start();
-    const allocator = std.heap.page_allocator;
+test "buffer" {
+    var buffer: [120]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = fba.allocator();
 
-    print("\n\t ** Arena allocator **\n", .{});
-    try tester(allocator);
-    const time = start.read();
-    print("Bench Time: {}\n", .{std.fmt.fmtDuration(time)});
+    const memory = try allocator.alloc(u8, 120);
+    defer allocator.free(memory);
 
-    return time;
+    try expect(memory.len == 120);
+    try expect(@TypeOf(memory) == []u8);
+
+    for (buffer, 0..) |_, i| memory[i] = @as(u8, @intCast(i));
+    print("\n {any} -max \n", .{memory});
 }
