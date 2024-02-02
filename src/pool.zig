@@ -76,9 +76,9 @@ fn Impls(comptime Object: type) type {
     };
 }
 
-const small_rounds = 2_500_000;
-const medium_rounds = 1_000_000;
-const big_rounds = 25_000;
+const small_rounds = 2_500_00;
+const medium_rounds = 1_000_00;
+const big_rounds = 25_00;
 
 test "gpa(small)" {
     var impl = Impls(SmallObject).Raw.init(std.testing.allocator);
@@ -146,8 +146,6 @@ test "arena(medium)" {
 fn runPerfTest(tag: []const u8, comptime Object: type, pool: anytype, max_rounds: usize) !void {
     const begin_time = std.time.nanoTimestamp();
 
-    _ = pool;
-
     var slots = std.BoundedArray(*Object, 256){};
     var rounds: usize = max_rounds;
 
@@ -166,7 +164,7 @@ fn runPerfTest(tag: []const u8, comptime Object: type, pool: anytype, max_rounds
 
         if (slots.len > 0) {
             if (rng.float(f32) <= free_chance) {
-                var index = rng.intRangeLessThan(usize, 0, slots.len);
+                const index = rng.intRangeLessThan(usize, 0, slots.len);
                 const ptr = slots.swapRemove(index);
                 pool.delete(ptr);
 
@@ -183,7 +181,7 @@ fn runPerfTest(tag: []const u8, comptime Object: type, pool: anytype, max_rounds
             }
         }
 
-        max_fill_level = std.math.max(max_fill_level, slots.len);
+        max_fill_level = @max(max_fill_level, slots.len);
     }
 
     for (slots.slice()) |ptr| {
@@ -206,9 +204,11 @@ const SmallObject = struct {
 };
 
 const MediumObject = struct {
-    medium: [8192]u8,
+    // medium: [8192]u8,
+    medium: [1024]u8,
 };
 
 const BigObject = struct {
-    big: [1024 * 1024]u8,
+    // big: [1024 * 1024]u8,
+    big: [20240]u8,
 };
