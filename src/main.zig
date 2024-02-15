@@ -37,3 +37,62 @@ test "total slice" {
     try expect(total(vec[0..5]) == 2111);
     try expect(total(vec[0..]) == 2111);
 }
+
+test "nested continue" {
+    var count: usize = 0;
+    for ([_]i32{ 1, 2, 3, 4, 5, 6, 7 }) |_| {
+        for ([_]i32{ 1, 2, 3, 4, 5 }) |_| {
+            count += 1;
+            break;
+        }
+    }
+    try expect(count == 7);
+}
+
+fn hangeHasVal(begin: usize, end: usize, val: usize) bool {
+    var i: usize = begin;
+    return while (i <= end) : (i += 1) {
+        if (i == val)
+            break true;
+    } else false;
+}
+
+test "hangeHasVal" {
+    try expect(hangeHasVal(0, 10, 60) == false);
+}
+
+test "contains 6" {
+    var index: ?usize = null;
+    const vec = [_]f64{ 1, 2, 3, 4, 5.6, 6.9 };
+    for (vec, 0..) |v, i| {
+        if (v == 6) index = i;
+    }
+    try expect(index == undefined);
+}
+
+const Error = error{WrongPerson};
+fn helloAleOrError(name: []const u8) !bool {
+    if (std.mem.eql(u8, name, "Ale")) {
+        print("Hello, {s}\n", .{name});
+        return true;
+    } else if (std.mem.eql(u8, name, "ale")) {
+        return false;
+    }
+    return Error.WrongPerson;
+}
+
+test "first error tpe" {
+    const name = "zAle";
+
+    // Se retornou true ou false
+    if (helloAleOrError(name)) |maiuscula| {
+        if (maiuscula) {
+            print("Ale (Maiuscula)\n", .{});
+        } else {
+            print("ale (minuscula)\n", .{});
+        }
+        // Se retornou Error
+    } else |err| {
+        std.debug.print("Error: {}\n", .{err});
+    }
+}
