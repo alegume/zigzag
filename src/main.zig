@@ -104,3 +104,13 @@ test "first error tpe" {
         std.debug.print("Error: {}\n", .{err});
     }
 }
+
+test "matrix" {
+    var matrix:[2][2]usize = undefined;
+    
+    matrix = [_] [2]usize{
+        [_]usize {1, 2},
+        [_]usize {1, 2},
+    };
+    print("\n{any}\n", .{matrix});
+}
