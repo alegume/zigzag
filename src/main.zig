@@ -71,25 +71,33 @@ test "contains 6" {
 }
 
 const Error = error{WrongPerson};
-fn helloAleOrError(name: []const u8) !bool {
+fn helloAleOrError(name: []const u8) !?bool {
     if (std.mem.eql(u8, name, "Ale")) {
         print("Hello, {s}\n", .{name});
         return true;
     } else if (std.mem.eql(u8, name, "ale")) {
         return false;
     }
+    if (std.mem.eql(u8, name, "xandi")) {
+        print("No harmonia do samba allowed, {s}\n", .{name});
+        return null;
+    }
     return Error.WrongPerson;
 }
 
 test "first error tpe" {
-    const name = "zAle";
+    const name = "xandi";
 
     // Se retornou true ou false
-    if (helloAleOrError(name)) |maiuscula| {
-        if (maiuscula) {
-            print("Ale (Maiuscula)\n", .{});
+    if (helloAleOrError(name)) |not_xandi| {
+        if (not_xandi) |ale| {
+            if (ale) {
+                print("Ale (Maiuscula)\n", .{});
+            } else {
+                print("ale (minuscula)\n", .{});
+            }
         } else {
-            print("ale (minuscula)\n", .{});
+            print("Don't play axé on me. Sorry not sorry", .{});
         }
         // Se retornou Error
     } else |err| {
