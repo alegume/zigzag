@@ -35,7 +35,8 @@ pub fn Matrix(comptime T: type) type {
             std.debug.print("\t Printing {}x{} matrix:\n", .{ self.row, self.column });
             for (self.data) |row| {
                 for (row) |item| {
-                    std.debug.print("{any} \t", .{ item });
+                    const char = item orelse 0;
+                    std.debug.print("{any}\t", .{ char });
                 }
                 std.debug.print("\n", .{});
             }
@@ -43,7 +44,7 @@ pub fn Matrix(comptime T: type) type {
     };
 }
 
-pub fn read(path: []const u8, comptime T: type) !void {
+pub fn readAsMatrix(path: []const u8, comptime T: type) !void {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     var buf_reader = std.io.bufferedReader(file.reader());
@@ -88,24 +89,24 @@ pub fn read(path: []const u8, comptime T: type) !void {
 
             const j = std.fmt.parseInt(usize, it.next() orelse unreachable, 10) catch unreachable;
 
-            matrix.data[i-1][j-1] = std.fmt.parseInt(T, it.next() orelse unreachable, 10) catch unreachable;
+            matrix.data[i-1][j-1] = std.fmt.parseInt(T, it.next() orelse "1", 10) catch unreachable;
 
             lines_read += 1;
         }
 
     }
     assert(n_lines == lines_read);
-    // matrix.print();
+    matrix.print();
 }
 
-test "reading HB file" {
+test "reading HB file as matrix" {
     // const file = "input/apache2.mtx";
-    const file = "input/tests/test1.mtx";
+    const file = "input/tests/test4-ipo.mtx";
     // const file = "input/general/bcspwr01.mtx";
     // const file = "input/big/nasa2910.mtx";
     // const file = "input/big/Roget.mtx";
 
-    _ = try read(file, u8);
+    _ = try readAsMatrix(file, u8);
 }
 
 // Works for multidimensional arrays or slices
