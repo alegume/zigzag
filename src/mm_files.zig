@@ -1,6 +1,8 @@
 // https://math.nist.gov/MatrixMarket/formats.html
 const std = @import("std");
 const assert = std.debug.assert;
+const expect = std.testing.expect;
+
 
 pub const ReadingError = error{HeaderError};
 
@@ -44,7 +46,7 @@ pub fn Matrix(comptime T: type) type {
     };
 }
 
-pub fn readAsMatrix(path: []const u8, comptime T: type) !void {
+pub fn readAsMatrix(path: []const u8, comptime T: type) !Matrix(T) {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     var buf_reader = std.io.bufferedReader(file.reader());
@@ -93,20 +95,37 @@ pub fn readAsMatrix(path: []const u8, comptime T: type) !void {
 
             lines_read += 1;
         }
-
     }
     assert(n_lines == lines_read);
-    matrix.print();
+    return matrix.*;
 }
 
 test "reading HB file as matrix" {
     // const file = "input/apache2.mtx";
-    const file = "input/tests/test4-ipo.mtx";
+    const file1 = "input/tests/test1.mtx";
+    const matrix1 = try readAsMatrix(file1, u8);
+    var m1:[][]?u8 = undefined;
+    const allocator = std.heap.page_allocator;
+    m1 = allocator.alloc([]?u8, 4) catch unreachable;
+    for (0..4) |i|
+        m1[i] = allocator.alloc(?u8, 4) catch unreachable;
+    @memcpy(m1[0], ([_]?u8 {5, null, null, null})[0..]);
+    @memcpy(m1[1], ([_]?u8 {null, 8, null, null})[0..]);
+    @memcpy(m1[2], ([_]?u8 {null, null, 3, null})[0..]);
+    @memcpy(m1[3], ([_]?u8 {null, 6, null, null})[0..]);
+    try expect( @TypeOf(matrix1.data) == @TypeOf(m1));
+    for (m1, 0..) |row, i| 
+        for (row, 0..) |el, j| 
+            try expect(el == matrix1.data[i][j]);
+
+
     // const file = "input/general/bcspwr01.mtx";
     // const file = "input/big/nasa2910.mtx";
     // const file = "input/big/Roget.mtx";
 
-    _ = try readAsMatrix(file, u8);
+    // const file = "input/tests/test4-ipo.mtx";
+    // var matrix = try readAsMatrix(file, u8);
+    // matrix.print();
 }
 
 // Works for multidimensional arrays or slices
