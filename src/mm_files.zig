@@ -114,23 +114,52 @@ pub fn symmetry(path: []const u8) !bool {
     return std.mem.eql(u8, hl.next().?, "symmetric");
 }
 
-// test "reading HB file as matrix" {
-//     const file1 = "input/tests/test1.mtx";
-//     const matrix1 = try readAsMatrix(file1, u8);
-//     var m1:[][]?u8 = undefined;
-//     const allocator = std.testing.allocator ;
-//     m1 = allocator.alloc([]?u8, 4) catch unreachable;
-//     defer allocator.free(m1);
-//     for (0..4) |i| {
-//         m1[i] = allocator.alloc(?u8, 4) catch unreachable;
-//         defer allocator.free(m1[i]);
-//     }
-//     @memcpy(m1[0], ([_]?u8 {5, null, null, null})[0..]);
-//     @memcpy(m1[1], ([_]?u8 {null, 8, null, null})[0..]);
-//     @memcpy(m1[2], ([_]?u8 {null, null, 3, null})[0..]);
-//     @memcpy(m1[3], ([_]?u8 {null, 6, null, null})[0..]);
-//     try expect( @TypeOf(matrix1.data) == @TypeOf(m1));
-//     for (m1, 0..) |row, i| 
-//         for (row, 0..) |el, j| 
-//             try expect(el == matrix1.data[i][j]);
-// }
+test "reading HB file as matrix" {
+    const file1 = "input/tests/test1.mtx";
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const matrix1 = try readAsMatrix(file1, u8, allocator);
+    var m1:[][]?u8 = undefined;
+    m1 = allocator.alloc([]?u8, 4) catch unreachable;
+    for (0..4) |i| {
+        m1[i] = allocator.alloc(?u8, 4) catch unreachable;
+    }
+    @memcpy(m1[0], ([_]?u8 {5, null, null, null})[0..]);
+    @memcpy(m1[1], ([_]?u8 {null, 8, null, null})[0..]);
+    @memcpy(m1[2], ([_]?u8 {null, null, 3, null})[0..]);
+    @memcpy(m1[3], ([_]?u8 {null, 6, null, null})[0..]);
+    try expect( @TypeOf(matrix1.data) == @TypeOf(m1));
+    for (m1, 0..) |row, i|
+        for (row, 0..) |el, j|
+            try expect(el == matrix1.data[i][j]);
+}
+
+test "testing reading real assymetric matrix" {
+    const file = "input/tests/b1_ss.mtx";
+    const et = try entriesType(file);
+    try expect(et == MatrixEntries.float);
+    const s = try symmetry(file);
+    try expect(s == false);
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const matrix = try readAsMatrix(file, f64, allocator);
+    const m1 = [7][7]?f64 {
+        [_]?f64 {null, 1, 1, 1, null, null, null},
+        [_]?f64 {null, -1, null, null, 0.45, null, null},
+        [_]?f64 {null, null, -1, null, null, 0.1, null},
+        [_]?f64 {null, null, null, -1, null, null, 0.45},
+        [_]?f64 {-0.03599942, null, null, null, 1, null, null},
+        [_]?f64 {-0.0176371, null, null, null, null, 1, null},
+        [_]?f64 {-0.007721779, null, null, null, null, null, 1},
+    };
+
+    for (m1, 0..) |row, i| {
+        for (row, 0..) |val, j| {
+            try expect(matrix.data[i][j] == val);
+        }
+    }
+}
