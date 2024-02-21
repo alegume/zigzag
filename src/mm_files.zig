@@ -4,6 +4,7 @@ const Matrix = @import("matrix.zig").Matrix;
 const assert = std.debug.assert;
 const expect = std.testing.expect;
 
+pub const MatrixEntries = enum{int, float, complex, pattern};
 pub const ReadingError = error{HeaderError};
 
 pub fn readAsMatrix(path: []const u8, comptime T: type) !Matrix(T) {
@@ -16,33 +17,10 @@ pub fn readAsMatrix(path: []const u8, comptime T: type) !Matrix(T) {
     var n_lines: usize = 0;
     var m: usize = 0;
     var n: usize = 0;
-    var symmetric: bool = false;
-    var real: bool = false;
-    var integer: bool = false;
-    var pattern: bool = false;
     const allocator = std.heap.page_allocator;
     var matrix = try allocator.create(Matrix(T));
 
-    // header line (first line)
-    const first_line = try in_stream.readUntilDelimiterOrEof(&buf, '\n');
-    var hl = std.mem.splitBackwardsScalar(u8, first_line.?, ' ');
-    if (std.mem.eql(u8, hl.next().?, "symmetric")) {
-        symmetric = true;
-    }
-    const data_type:[]const u8 = hl.next() orelse " ";
-    if (std.mem.eql(u8, data_type , "real")) {
-        real = true;
-    } else if (std.mem.eql(u8, data_type, "pattern")) {
-        pattern = true;
-    } else if (std.mem.eql(u8, data_type, "integer")) {
-        integer = true;
-    } else if (std.mem.eql(u8, data_type, "complex")) {
-        std.debug.print("Complex type detected! Considering as pattern matrix.", .{});
-        pattern = true;
-    } else {
-        std.debug.print("No type detected! Considering as pattern matrix.", .{});
-        pattern = true;
-    }
+    const is_symmetric = symmetry(path);
 
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         if (m == 0) {
@@ -74,6 +52,8 @@ pub fn readAsMatrix(path: []const u8, comptime T: type) !Matrix(T) {
             // Patern Matrix (null and 1)
             if (val == null) {
                 matrix.data[i-1][j-1] = 1;
+                if (try is_symmetric)
+                    matrix.data[j-1][i-1] = 1;
             } else { // Convert if not null
                 switch (@typeInfo(T)) {
                     .Float => matrix.data[i-1][j-1] = std.fmt.parseFloat(T, val.?) catch @panic("Not Float type!"),
@@ -87,6 +67,52 @@ pub fn readAsMatrix(path: []const u8, comptime T: type) !Matrix(T) {
     }
     assert(n_lines == lines_read);
     return matrix.*;
+}
+
+pub fn entriesType(path: []const u8) !MatrixEntries {
+    var file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+    var buf: [1024]u8 = undefined;
+
+    // header line (first line)
+    const first_line = try in_stream.readUntilDelimiterOrEof(&buf, '\n');
+    var hl = std.mem.splitBackwardsScalar(u8, first_line.?, ' ');
+
+    // Ignore symmetry
+    _ = hl.next().?;
+
+    // Read type
+    const data_type:[]const u8 = hl.next().?;
+    if (std.mem.eql(u8, data_type , "real")) {
+        return MatrixEntries.float;
+    } else if (std.mem.eql(u8, data_type, "pattern")) {
+        return MatrixEntries.pattern;
+    } else if (std.mem.eql(u8, data_type, "integer")) {
+        return MatrixEntries.int;
+    } else if (std.mem.eql(u8, data_type, "complex")) {
+        std.debug.print("Complex type detected! Considering as pattern matrix.", .{});
+        return MatrixEntries.pattern;
+    } else {
+        std.debug.print("No type detected! Considering as pattern matrix.", .{});
+        return MatrixEntries.pattern;
+    }
+}
+
+pub fn symmetry(path: []const u8) !bool {
+    var file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+    var buf: [1024]u8 = undefined;
+
+    // header line (first line)
+    const first_line = try in_stream.readUntilDelimiterOrEof(&buf, '\n');
+    var hl = std.mem.splitBackwardsScalar(u8, first_line.?, ' ');
+    
+    // Return symmetry
+    return std.mem.eql(u8, hl.next().?, "symmetric");
 }
 
 // test "reading HB file as matrix" {

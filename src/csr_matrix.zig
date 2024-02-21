@@ -1,6 +1,6 @@
 const std = @import("std");
 const Matrix = @import("matrix.zig").Matrix;
-const readAsMatrix = @import("mm_files.zig").readAsMatrix;
+const mm = @import("mm_files.zig");
 // const assert = std.debug.assert;
 // const expect = std.testing.expect;
 
@@ -15,10 +15,22 @@ test "testing" {
     // const file = "input/big/nasa2910.mtx";
     // const file = "input/big/Roget.mtx";
     const file = "input/tests/b1_ss.mtx";
-    // const file = "input/tests/test1.mtx";
+    // const file = "input/tests/test3.mtx";
 
-    // var matrix = try readAsMatrix(file, f64);
-    // matrix.print();
+    // const et = try mm.entriesType(file);
+    // std.debug.print("\n{any}\n", .{et});
 
-    _ = try readAsMatrix(file, f64);
+    const entries_type = try mm.entriesType(file);
+    switch (entries_type) {
+        .float => {
+            var matrix = try mm.readAsMatrix(file, f64);
+            matrix.print();
+        },
+        else => {
+            var matrix = try mm.readAsMatrix(file, usize);
+            matrix.print();
+        },
+    }
+
+    // _ = try mm.readAsMatrix(file, f64);
 }
