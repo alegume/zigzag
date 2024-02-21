@@ -115,20 +115,20 @@ pub fn symmetry(path: []const u8) !bool {
     return std.mem.eql(u8, hl.next().?, "symmetric");
 }
 
-// test "reading HB file as matrix" {
-//     const file1 = "input/tests/test1.mtx";
-//     const matrix1 = try readAsMatrix(file1, u8);
-//     var m1:[][]?u8 = undefined;
-//     const allocator = std.heap.page_allocator;
-//     m1 = allocator.alloc([]?u8, 4) catch unreachable;
-//     for (0..4) |i|
-//         m1[i] = allocator.alloc(?u8, 4) catch unreachable;
-//     @memcpy(m1[0], ([_]?u8 {5, null, null, null})[0..]);
-//     @memcpy(m1[1], ([_]?u8 {null, 8, null, null})[0..]);
-//     @memcpy(m1[2], ([_]?u8 {null, null, 3, null})[0..]);
-//     @memcpy(m1[3], ([_]?u8 {null, 6, null, null})[0..]);
-//     try expect( @TypeOf(matrix1.data) == @TypeOf(m1));
-//     for (m1, 0..) |row, i| 
-//         for (row, 0..) |el, j| 
-//             try expect(el == matrix1.data[i][j]);
-// }
+test "reading HB file as matrix" {
+    const file1 = "input/tests/test1.mtx";
+    const matrix1 = try readAsMatrix(file1, u8);
+    var m1:[][]?u8 = undefined;
+    const allocator = std.heap.page_allocator;
+    m1 = allocator.alloc([]?u8, 4) catch unreachable;
+    for (0..4) |i|
+        m1[i] = allocator.alloc(?u8, 4) catch unreachable;
+    @memcpy(m1[0], ([_]?u8 {5, null, null, null})[0..]);
+    @memcpy(m1[1], ([_]?u8 {null, 8, null, null})[0..]);
+    @memcpy(m1[2], ([_]?u8 {null, null, 3, null})[0..]);
+    @memcpy(m1[3], ([_]?u8 {null, 6, null, null})[0..]);
+    try expect( @TypeOf(matrix1.data) == @TypeOf(m1));
+    for (m1, 0..) |row, i| 
+        for (row, 0..) |el, j| 
+            try expect(el == matrix1.data[i][j]);
+}
