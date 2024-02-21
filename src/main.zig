@@ -114,3 +114,16 @@ test "matrix" {
     };
     print("\n{any}\n", .{matrix});
 }
+
+test "null" {
+    var x:?u8 = undefined;
+    x = null;
+
+    if (x) |_| {
+        x = 11;
+    } else {
+        x = 0;
+    }
+
+    try expect(x == 0);
+}

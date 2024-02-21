@@ -1,11 +1,15 @@
 const std = @import("std");
 
+pub const MatrixEntries = enum{int, float, complex, pattern};
+
 pub fn Matrix(comptime T: type) type {
     return struct {
         data: [][]?T = undefined,
         row: usize,
         column: usize,
+        entries_type: MatrixEntries = undefined,
         symmetric: bool = false,
+        nz_len: usize = 0,
 
         const Self = @This(); // equivalent to Matrix(T)
         pub fn init(row: usize, column: usize, allocator: std.mem.Allocator) Self {

@@ -1,10 +1,10 @@
 // https://math.nist.gov/MatrixMarket/formats.html
 const std = @import("std");
 const Matrix = @import("matrix.zig").Matrix;
+const MatrixEntries = @import("matrix.zig").MatrixEntries;
 const assert = std.debug.assert;
 const expect = std.testing.expect;
 
-pub const MatrixEntries = enum{int, float, complex, pattern};
 pub const ReadingError = error{HeaderError};
 
 pub fn readAsMatrix(path: []const u8, comptime T: type, allocator: std.mem.Allocator) !Matrix(T) {
@@ -40,6 +40,7 @@ pub fn readAsMatrix(path: []const u8, comptime T: type, allocator: std.mem.Alloc
             assert(n_lines > 0);
 
             matrix.* = Matrix(T).init(m, n, allocator);
+            matrix.nz_len = n_lines;
         } else {
             // Format => I1  J1  M(I1, J1)
             var it = std.mem.splitScalar(u8, line, ' ');
@@ -65,6 +66,8 @@ pub fn readAsMatrix(path: []const u8, comptime T: type, allocator: std.mem.Alloc
         }
     }
     assert(n_lines == lines_read);
+    matrix.entries_type = try entriesType(path);
+
     return matrix.*;
 }
 
