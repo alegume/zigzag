@@ -7,21 +7,22 @@ const mm = @import("mm_files.zig");
 
 pub fn CSR_Matrix(comptime T: type) type {
     return struct {
-        v: ?[]T,            // non zeros values
+        v: []T,            // non zeros values
         col_index: []usize, // column indices of values in v
         row_index: []usize, // indices in v/rol_index where the rows starts
         nz_len: usize = 0,
 
         const Self = @This();
-        pub fn init(nz_len: usize, entries_type: MatrixEntries, allocator: std.mem.Allocator) Self {
-            var v:?[]T = undefined;
+        pub fn init(m: usize, nz_len: usize, entries_type: MatrixEntries, allocator: std.mem.Allocator) Self {
+            var v:[]T = undefined;
             if (entries_type != MatrixEntries.pattern) {
                 v = allocator.alloc(T, nz_len) catch unreachable;
-            } else {
-                v = null;
-            }
+            } else { // Fill it with garbage
+                v = allocator.alloc(T, 1) catch unreachable;
+                v[0] = 0; 
+            }   
             const col_index = allocator.alloc(usize, nz_len) catch unreachable;
-            const row_index =allocator.alloc(usize, nz_len + 1) catch unreachable;
+            const row_index =allocator.alloc(usize, m + 1) catch unreachable;
 
             return .{
                 .v = v,
@@ -34,23 +35,25 @@ pub fn CSR_Matrix(comptime T: type) type {
 }
 
 pub fn matrixToCSR(comptime T:type, matrix: Matrix(T), allocator: std.mem.Allocator) CSR_Matrix(T) {
+    var csr_matrix = CSR_Matrix(T).init(matrix.row, matrix.nz_len, matrix.entries_type, allocator);
+    var count: usize = 0;
 
-    // var csr_matrix = try allocator.create(CSR_Matrix(T));
-    const csr_matrix = CSR_Matrix(T).init(matrix.nz_len, matrix.entries_type, allocator);
-
-
-    std.debug.print("\n{any}\n", .{csr_matrix});
-    // std.debug.print("\n{any}\n", .{matrix});
-    // std.debug.print("\n{any}\n", .{allocator});
-    // for (matrix.data, 0..) |row, i| {
-    //     for (row, 0..) |val, j| {
-    //         // try expect(matrix.data[i][j] == val);
-    //     }
-    // }
+    csr_matrix.row_index[0] = 0; // Always
+    for (matrix.data, 1..) |row, i| {
+        for (row, 0..) |data, j| {
+            if (data) |val| {
+                if (matrix.entries_type != MatrixEntries.pattern) {
+                    csr_matrix.v[count] = val;
+                }
+                csr_matrix.col_index[count] = j;
+                count += 1;
+            }
+        }
+        csr_matrix.row_index[i] = count;
+    }
 
     return csr_matrix;
 }
-
 
 
 test "testing" {
@@ -58,15 +61,13 @@ test "testing" {
     // const file = "input/general/bcspwr01.mtx";
     // const file = "input/big/nasa2910.mtx";
     // const file = "input/big/Roget.mtx";
-    // const file = "input/tests/b1_ss.mtx";
-    const file = "input/tests/test1.mtx";
-
-    // const et = try mm.entriesType(file);
-    // std.debug.print("\n{any}\n", .{et});
+    const file = "input/tests/b1_ss.mtx";
+    // const file = "input/tests/test2.mtx";
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
+
     const entries_type = try mm.entriesType(file);
     switch (entries_type) {
         .float => {
