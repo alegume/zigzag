@@ -1,7 +1,8 @@
 const std = @import("std");
 const Matrix = @import("matrix.zig").Matrix;
-const MatrixEntries = @import("matrix.zig").MatrixEntries;
+const readAsMatrix = @import("matrix.zig").readAsMatrix;
 const mm = @import("mm_files.zig");
+const EntriesType = mm.EntriesType;
 // const assert = std.debug.assert;
 
 pub fn CSR_Matrix(comptime T: type) type {
@@ -13,9 +14,9 @@ pub fn CSR_Matrix(comptime T: type) type {
         m: usize = 0,       // number os rows/columns
 
         const Self = @This();
-        pub fn init(m: usize, nz_len: usize, entries_type: MatrixEntries, allocator: std.mem.Allocator) Self {
+        pub fn init(m: usize, nz_len: usize, entries_type: EntriesType, allocator: std.mem.Allocator) Self {
             var v:?[]T = undefined;
-            if (entries_type != MatrixEntries.pattern) {
+            if (entries_type != EntriesType.pattern) {
                 v = allocator.alloc(T, nz_len) catch unreachable;
             } else {
                 v = null; 
@@ -42,7 +43,7 @@ pub fn matrixToCSR(comptime T:type, matrix: Matrix(T), allocator: std.mem.Alloca
     for (matrix.data, 1..) |row, i| {
         for (row, 0..) |data, j| {
             if (data) |val| {
-                if (matrix.entries_type != MatrixEntries.pattern) {
+                if (matrix.entries_type != EntriesType.pattern) {
                     csr_matrix.v.?[count] = val;
                 }
                 csr_matrix.col_index[count] = j;
@@ -54,6 +55,34 @@ pub fn matrixToCSR(comptime T:type, matrix: Matrix(T), allocator: std.mem.Alloca
 
     return csr_matrix;
 }
+
+
+pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocator) !CSR_Matrix(T) {
+    var file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+    var list = std.ArrayList(T).init(allocator);
+    defer list.deinit();
+
+    try list.append('H');
+    std.debug.print("\ns: {any}\n", .{list});
+
+
+    const csr = try allocator.create(CSR_Matrix(T));
+    csr.* = CSR_Matrix(T).init(9, 9, EntriesType.int, allocator);
+    return csr.*;
+}
+
+test "csrFromFile" {
+    const file = "input/tests/test1.mtx";
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    _ = try csrFromFile(u8, file, allocator);
+
+}
+
+
+
 
 // test "testing" {
 //     // const file = "input/apache2.mtx";
@@ -91,9 +120,9 @@ test "Testing CSR - test1.mtx" {
     const allocator = arena.allocator();
 
     const file = "input/tests/test1.mtx";
-    try expect(try mm.entriesType(file) == MatrixEntries.int);
+    try expect(try mm.entriesType(file) == EntriesType.int);
 
-    const matrix = try mm.readAsMatrix(u8, file, allocator);
+    const matrix = try readAsMatrix(u8, file, allocator);
     const csr_matrix = matrixToCSR(u8, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 4);
@@ -110,9 +139,9 @@ test "Testing CSR - test2.mtx" {
     const allocator = arena.allocator();
 
     const file = "input/tests/test2.mtx";
-    try expect(try mm.entriesType(file) == MatrixEntries.int);
+    try expect(try mm.entriesType(file) == EntriesType.int);
 
-    const matrix = try mm.readAsMatrix(u8, file, allocator);
+    const matrix = try readAsMatrix(u8, file, allocator);
     const csr_matrix = matrixToCSR(u8, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 8);
@@ -129,9 +158,9 @@ test "Testing CSR - b1_ss.mtx" {
     const allocator = arena.allocator();
 
     const file = "input/tests/b1_ss.mtx";
-    try expect(try mm.entriesType(file) == MatrixEntries.float);
+    try expect(try mm.entriesType(file) == EntriesType.float);
 
-    const matrix = try mm.readAsMatrix(f64, file, allocator);
+    const matrix = try readAsMatrix(f64, file, allocator);
     const csr_matrix = matrixToCSR(f64, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 15);

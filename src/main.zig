@@ -2,7 +2,7 @@ const std = @import("std");
 const Matrix = @import("matrix.zig").Matrix;
 const CSR_Matrix = @import("csr_matrix.zig").CSR_Matrix;
 const matrixToCSR = @import("csr_matrix.zig").matrixToCSR;
-const MatrixEntries = @import("matrix.zig").MatrixEntries;
+const EntriesType = @import("matrix.zig").EntriesType;
 const mm = @import("mm_files.zig");
 
 
