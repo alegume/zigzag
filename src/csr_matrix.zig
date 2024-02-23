@@ -39,6 +39,7 @@ pub fn CSR_Matrix(comptime T: type) type {
                 .col_index  = col_index,
                 .row_index  = row_index,
                 .nz_len     = nz_len,
+                .m          = m
             };
         }
     };
@@ -116,21 +117,41 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
     // row_index always starts whit 0 (first line)
     csr.row_index[0] = 0;
 
+//
+// row_index not counting properly
+//
+
+    var row_index:usize = 1;
+    var count:usize = 0; // Count elements in row
     for (sorted_list, 0..) |e, i| {
-        std.debug.print("{any}\n", .{e});
-        csr.v.?[i] = e.v.?;
+        std.debug.print("\n{any}\n", .{e});
+        if (e.v) |val| 
+            csr.v.?[i] = val;
+        csr.col_index[i] = e.j - 1;
+
+        if (e.i == row_index) {
+            std.debug.print("\t=e.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
+            count += 1;
+        } else {
+            csr.row_index[row_index] = csr.row_index[row_index - 1] + count;
+            row_index += 1;
+            std.debug.print("\te2.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
+            count = 0;
+        }
+
     }
+    csr.row_index[csr.m] = csr.nz_len;
 
     return csr.*;
 }
 
 test "csrFromFile" {
-    // const file = "input/tests/test1.mtx";
-    const file = "input/tests/b1_ss.mtx";
+    const file = "input/tests/test3.mtx";
+    // const file = "input/tests/b1_ss.mtx";
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
-    const csr = try csrFromFile(f64, file, allocator);
+    const csr = try csrFromFile(u8, file, allocator);
 
     std.debug.print("\n\n{any}\n", .{csr});
 
