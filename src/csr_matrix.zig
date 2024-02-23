@@ -108,36 +108,50 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
     csr.entries_type = try mm.entriesType(path);
 
     // Sorting element_list
-    std.debug.print("{any}\n", .{element_list});
     const sorted_list = try element_list.toOwnedSlice();
-    std.mem.sort(Element(T), sorted_list, {}, comptime ascByRow(T));
-    std.debug.print("{any}\n", .{sorted_list});
+    std.mem.sort(Element(T), sorted_list, {}, comptime ascByRowThenCol(T));
+
     // Populate CSR 
+    // csr.v[0] = ?;
+    // row_index always starts whit 0 (first line)
+    csr.row_index[0] = 0;
 
-
+    for (sorted_list, 0..) |e, i| {
+        std.debug.print("{any}\n", .{e});
+        csr.v.?[i] = e.v.?;
+    }
 
     return csr.*;
 }
 
-// Sort generic list by row
-fn ascByRow(comptime T: type) fn (void, Element(T), Element(T)) bool {
-    const impl = struct {
-        fn inner(context: void, a: Element(T), b: Element(T)) bool {
-            _ = context;
-            return a.i < b.i;
-        }
-    };
-    return impl.inner;
-}
-
 test "csrFromFile" {
-    const file = "input/tests/test1.mtx";
-    // const file = "input/tests/b1_ss.mtx";
+    // const file = "input/tests/test1.mtx";
+    const file = "input/tests/b1_ss.mtx";
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
-    _ = try csrFromFile(f64, file, allocator);
+    const csr = try csrFromFile(f64, file, allocator);
 
+    std.debug.print("\n\n{any}\n", .{csr});
+
+
+}
+
+// Sort generic list by row
+fn ascByRowThenCol(comptime T: type) fn (void, Element(T), Element(T)) bool {
+    const impl = struct {
+        fn inner(context: void, a: Element(T), b: Element(T)) bool {
+            _ = context;
+            if (a.i < b.i) { // Compare based on "i"
+                return true;
+            } else if (a.i > b.i) {
+                return false;
+            } else { // If "i" is equal, compare based on "j"
+                return a.j < b.j;
+            }
+        }
+    };
+    return impl.inner;
 }
 
 
