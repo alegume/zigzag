@@ -28,7 +28,7 @@ pub fn Matrix(comptime T: type) type {
             };
         }
 
-        pub fn print(self: *Self) void {
+        pub fn print(self: Self) void {
             std.debug.print("\t Printing {}x{} matrix:\n", .{ self.row, self.column });
             for (self.data) |row| {
                 for (row) |item| {
