@@ -6,7 +6,7 @@ const mm = @import("mm_files.zig");
 
 pub fn CSR_Matrix(comptime T: type) type {
     return struct {
-        v: []T,             // Non zeros values
+        v: ?[]T = null,             // Non zeros values
         col_index: []usize, // Column indices of values in v
         row_index: []usize, // Indices in v/rol_index where the rows starts
         nz_len: usize = 0,  // Non zeros elements
@@ -14,12 +14,11 @@ pub fn CSR_Matrix(comptime T: type) type {
 
         const Self = @This();
         pub fn init(m: usize, nz_len: usize, entries_type: MatrixEntries, allocator: std.mem.Allocator) Self {
-            var v:[]T = undefined;
+            var v:?[]T = undefined;
             if (entries_type != MatrixEntries.pattern) {
                 v = allocator.alloc(T, nz_len) catch unreachable;
-            } else { // Fill it with garbage
-                v = allocator.alloc(T, 1) catch unreachable;
-                v[0] = 0; 
+            } else {
+                v = null; 
             }   
             const col_index = allocator.alloc(usize, nz_len) catch unreachable;
             const row_index =allocator.alloc(usize, m + 1) catch unreachable;
@@ -44,7 +43,7 @@ pub fn matrixToCSR(comptime T:type, matrix: Matrix(T), allocator: std.mem.Alloca
         for (row, 0..) |data, j| {
             if (data) |val| {
                 if (matrix.entries_type != MatrixEntries.pattern) {
-                    csr_matrix.v[count] = val;
+                    csr_matrix.v.?[count] = val;
                 }
                 csr_matrix.col_index[count] = j;
                 count += 1;
@@ -99,7 +98,7 @@ test "Testing CSR - test1.mtx" {
 
     try expect(csr_matrix.nz_len == 4);
     try expect(csr_matrix.m == 4);
-    try expect(std.mem.eql(u8, csr_matrix.v, &[_]u8{5, 8, 3, 6}));
+    try expect(std.mem.eql(u8, csr_matrix.v.?, &[_]u8{5, 8, 3, 6}));
     try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{0, 1, 2, 1}));
     try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 1, 2, 3, 4}));
 }
@@ -118,7 +117,7 @@ test "Testing CSR - test2.mtx" {
 
     try expect(csr_matrix.nz_len == 8);
     try expect(csr_matrix.m == 6);
-    try expect(std.mem.eql(u8, csr_matrix.v, &[_]u8{10, 20, 30, 40, 50, 60, 70, 80}));
+    try expect(std.mem.eql(u8, csr_matrix.v.?, &[_]u8{10, 20, 30, 40, 50, 60, 70, 80}));
     try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{0, 1, 1, 3, 2, 3, 4, 5}));
     try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 2, 4, 7, 8, 8, 8}));
 }
@@ -137,7 +136,7 @@ test "Testing CSR - b1_ss.mtx" {
 
     try expect(csr_matrix.nz_len == 15);
     try expect(csr_matrix.m == 7);
-    try expect(std.mem.eql(f64, csr_matrix.v, &[_]f64{1, 1, 1, -1, 0.45, -1, 0.1, -1, 0.45, -0.03599942, 1, -0.0176371, 1, -0.007721779, 1}));
+    try expect(std.mem.eql(f64, csr_matrix.v.?, &[_]f64{1, 1, 1, -1, 0.45, -1, 0.1, -1, 0.45, -0.03599942, 1, -0.0176371, 1, -0.007721779, 1}));
     try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{1, 2, 3, 1, 4, 2, 5, 3, 6, 0, 4, 0, 5, 0, 6}));
     try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 3, 5, 7, 9, 11, 13, 15}));
 }
