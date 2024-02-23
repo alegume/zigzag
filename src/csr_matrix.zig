@@ -6,7 +6,7 @@ const mm = @import("mm_files.zig");
 
 pub fn CSR_Matrix(comptime T: type) type {
     return struct {
-        v: ?[]T = null,             // Non zeros values
+        v: ?[]T = null,     // Non zeros values
         col_index: []usize, // Column indices of values in v
         row_index: []usize, // Indices in v/rol_index where the rows starts
         nz_len: usize = 0,  // Non zeros elements
@@ -93,7 +93,7 @@ test "Testing CSR - test1.mtx" {
     const file = "input/tests/test1.mtx";
     try expect(try mm.entriesType(file) == MatrixEntries.int);
 
-    const matrix = try mm.readAsMatrix(file, u8, allocator);
+    const matrix = try mm.readAsMatrix(u8, file, allocator);
     const csr_matrix = matrixToCSR(u8, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 4);
@@ -112,7 +112,7 @@ test "Testing CSR - test2.mtx" {
     const file = "input/tests/test2.mtx";
     try expect(try mm.entriesType(file) == MatrixEntries.int);
 
-    const matrix = try mm.readAsMatrix(file, u8, allocator);
+    const matrix = try mm.readAsMatrix(u8, file, allocator);
     const csr_matrix = matrixToCSR(u8, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 8);
@@ -131,7 +131,7 @@ test "Testing CSR - b1_ss.mtx" {
     const file = "input/tests/b1_ss.mtx";
     try expect(try mm.entriesType(file) == MatrixEntries.float);
 
-    const matrix = try mm.readAsMatrix(file, f64, allocator);
+    const matrix = try mm.readAsMatrix(f64, file, allocator);
     const csr_matrix = matrixToCSR(f64, matrix, allocator);
 
     try expect(csr_matrix.nz_len == 15);

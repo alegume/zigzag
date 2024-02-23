@@ -2,12 +2,13 @@
 const std = @import("std");
 const Matrix = @import("matrix.zig").Matrix;
 const MatrixEntries = @import("matrix.zig").MatrixEntries;
+const CSR_Matrix = @import("csr_matrix.zig").CSR_Matrix;
 const assert = std.debug.assert;
 const expect = std.testing.expect;
 
 pub const ReadingError = error{HeaderError};
 
-pub fn readAsMatrix(path: []const u8, comptime T: type, allocator: std.mem.Allocator) !Matrix(T) {
+pub fn readAsMatrix(comptime T: type, path: []const u8, allocator: std.mem.Allocator) !Matrix(T) {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     var buf_reader = std.io.bufferedReader(file.reader());
@@ -71,6 +72,18 @@ pub fn readAsMatrix(path: []const u8, comptime T: type, allocator: std.mem.Alloc
     return matrix.*;
 }
 
+// pub fn csrFromFile(comptime T: type, path: []u8) CSR_Matrix(T) {
+//     _ = path;
+//     var list = std.ArrayList(T).iniCapacity(100);
+//     list.append(1);
+//     std.debug.print("\ns: {}\n", .{list});
+// }
+
+// test "csrFromFile" {
+    
+// }
+
+
 pub fn entriesType(path: []const u8) !MatrixEntries {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
@@ -122,7 +135,7 @@ test "reading HB file as matrix" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
-    const matrix1 = try readAsMatrix(file1, u8, allocator);
+    const matrix1 = try readAsMatrix(u8, file1, allocator);
     var m1:[][]?u8 = undefined;
     m1 = allocator.alloc([]?u8, 4) catch unreachable;
     for (0..4) |i| {
@@ -149,7 +162,7 @@ test "testing reading real assymetric matrix" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    const matrix = try readAsMatrix(file, f64, allocator);
+    const matrix = try readAsMatrix(f64, file, allocator);
     const m1 = [7][7]?f64 {
         [_]?f64 {null, 1, 1, 1, null, null, null},
         [_]?f64 {null, -1, null, null, 0.45, null, null},
