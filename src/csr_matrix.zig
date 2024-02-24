@@ -22,6 +22,7 @@ pub fn CSR_Matrix(comptime T: type) type {
         nz_len: usize = 0,  // Non zeros elements
         m: usize = 0,       // number os rows/columns
         entries_type: EntriesType = undefined,
+        max_degree:usize = 0,
 
         const Self = @This();
         pub fn init(m: usize, nz_len: usize, entries_type: EntriesType, allocator: std.mem.Allocator) Self {
@@ -101,7 +102,6 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
             }
             // Add Element to element_list
             try element_list.append(el);
-
             lines_read += 1;
         }
     }
@@ -117,7 +117,6 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
     csr.row_index[0] = 0;
     var row_index:usize = 1;
     for (sorted_list, 0..) |e, i| {
-        // std.debug.print("\n{any}\n", .{e});
         if (e.v) |val| 
             csr.v.?[i] = val;
 
@@ -125,18 +124,29 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
 
         if (e.i != row_index) { // New line
             csr.row_index[row_index] = i;
-            row_index = e.i;
-            // std.debug.print("\te2.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
+
+            const degree:usize = i - csr.row_index[row_index - 1];
+            if (degree > csr.max_degree)
+                csr.max_degree = degree;
+
+            row_index = e.i; // New index
         }
 
     }
     csr.row_index[csr.m] = csr.nz_len;
 
+    // In case it have more columns than rows
+    if (row_index < m) {
+        for (row_index..m) |i| {
+            csr.row_index[i] = csr.nz_len;
+        }
+    }
+
     return csr.*;
 }
 
 test "csrFromFile" {
-    const file = "input/tests/test1.mtx";
+    const file = "input/tests/test2.mtx";
     // const file = "input/tests/b1_ss.mtx";
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -146,6 +156,57 @@ test "csrFromFile" {
     std.debug.print("\n\n{any}\n", .{csr});
 
 
+}
+
+test "Testing CSR from file - test1.mtx" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const file = "input/tests/test1.mtx";
+    try expect(try mm.entriesType(file) == EntriesType.int);
+
+    const csr_matrix = try csrFromFile(u8, file, allocator);
+
+    try expect(csr_matrix.nz_len == 4);
+    try expect(csr_matrix.m == 4);
+    try expect(std.mem.eql(u8, csr_matrix.v.?, &[_]u8{5, 8, 3, 6}));
+    try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{0, 1, 2, 1}));
+    try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 1, 2, 3, 4}));
+}
+
+test "Testing CSR from file - test2.mtx" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const file = "input/tests/test2.mtx";
+    try expect(try mm.entriesType(file) == EntriesType.int);
+
+    const csr_matrix = try csrFromFile(u8, file, allocator);
+
+    try expect(csr_matrix.nz_len == 8);
+    try expect(csr_matrix.m == 6);
+    try expect(std.mem.eql(u8, csr_matrix.v.?, &[_]u8{10, 20, 30, 40, 50, 60, 70, 80}));
+    try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{0, 1, 1, 3, 2, 3, 4, 5}));
+    try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 2, 4, 7, 8, 8, 8}));
+}
+
+test "Testing CSR from file - b1_ss.mtx" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const file = "input/tests/b1_ss.mtx";
+    try expect(try mm.entriesType(file) == EntriesType.float);
+
+    const csr_matrix = try csrFromFile(f64, file, allocator);
+
+    try expect(csr_matrix.nz_len == 15);
+    try expect(csr_matrix.m == 7);
+    try expect(std.mem.eql(f64, csr_matrix.v.?, &[_]f64{1, 1, 1, -1, 0.45, -1, 0.1, -1, 0.45, -0.03599942, 1, -0.0176371, 1, -0.007721779, 1}));
+    try expect(std.mem.eql(usize, csr_matrix.col_index, &[_]usize{1, 2, 3, 1, 4, 2, 5, 3, 6, 0, 4, 0, 5, 0, 6}));
+    try expect(std.mem.eql(usize, csr_matrix.row_index, &[_]usize{0, 3, 5, 7, 9, 11, 13, 15}));
 }
 
 // Sort generic list by row
