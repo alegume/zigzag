@@ -112,31 +112,21 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
     const sorted_list = try element_list.toOwnedSlice();
     std.mem.sort(Element(T), sorted_list, {}, comptime ascByRowThenCol(T));
 
-    // Populate CSR 
-    // csr.v[0] = ?;
+    //       Populate CSR 
     // row_index always starts whit 0 (first line)
     csr.row_index[0] = 0;
-
-//
-// row_index not counting properly
-//
-
     var row_index:usize = 1;
-    var count:usize = 0; // Count elements in row
     for (sorted_list, 0..) |e, i| {
-        std.debug.print("\n{any}\n", .{e});
+        // std.debug.print("\n{any}\n", .{e});
         if (e.v) |val| 
             csr.v.?[i] = val;
+
         csr.col_index[i] = e.j - 1;
 
-        if (e.i == row_index) {
-            std.debug.print("\t=e.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
-            count += 1;
-        } else {
-            csr.row_index[row_index] = csr.row_index[row_index - 1] + count;
-            row_index += 1;
-            std.debug.print("\te2.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
-            count = 0;
+        if (e.i != row_index) { // New line
+            csr.row_index[row_index] = i;
+            row_index = e.i;
+            // std.debug.print("\te2.i:{}; row_index:{}; count:{}\n", .{e.i, row_index, count});
         }
 
     }
@@ -146,7 +136,7 @@ pub fn csrFromFile(comptime T: type, path: []const u8, allocator:std.mem.Allocat
 }
 
 test "csrFromFile" {
-    const file = "input/tests/test3.mtx";
+    const file = "input/tests/test1.mtx";
     // const file = "input/tests/b1_ss.mtx";
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
