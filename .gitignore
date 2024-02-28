@@ -1,1 +1,4 @@
 zig-cache
+input
+main
+main.o

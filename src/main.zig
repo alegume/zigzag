@@ -20,19 +20,18 @@ pub fn main() !void {
             .float => {
                 // const matrix = try mm.readAsMatrix(file, f64, allocator);
                 // const csr_matrix = matrixToCSR(f64, matrix, allocator);
-                const csr_matrix = csrFromFile(f64, file, allocator);
-                std.debug.print("nz_len: {any}\n", .{csr_matrix.nz_len});
+                const csr_matrix = try csrFromFile(f64, file, allocator);
+                std.debug.print("nz_len: {any}; max_degree: {}\n", .{ csr_matrix.nz_len, csr_matrix.max_degree });
             },
             else => {
                 // const matrix = try mm.readAsMatrix(file, usize, allocator);
                 // const csr_matrix = matrixToCSR(usize, matrix, allocator);
-                const csr_matrix = csrFromFile(usize, file, allocator);
-                std.debug.print("nz_len: {any}\n", .{csr_matrix.nz_len});
+                const csr_matrix = try csrFromFile(usize, file, allocator);
+                std.debug.print("nz_len: {any}; max_degree: {}\n", .{ csr_matrix.nz_len, csr_matrix.max_degree });
             },
         }
     }
 }
-
 
 // const Error = error{WrongPerson};
 // fn helloAleOrError(name: []const u8) !?bool {
@@ -71,7 +70,7 @@ pub fn main() !void {
 
 // test "matrix" {
 //     var matrix:[2][2]usize = undefined;
-    
+
 //     matrix = [_] [2]usize{
 //         [_]usize {1, 2},
 //         [_]usize {1, 2},
